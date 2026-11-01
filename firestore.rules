@@ -1,0 +1,102 @@
+rules_version = '2';
+
+// DATA_MODEL.md 5 章の方針。データはすべて users/{uid} の下にあり、本人だけが読み書きできる。
+// 中身は暗号化されているので、ここでは形（どのフィールドがあり、どの型か）だけを確かめる
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // メールアドレスで登録した人は、確認が済むまで使えない（F-03）。Google・GitHub でログインした人には条件を付けない
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && (request.auth.token.email_verified == true
+            || request.auth.token.firebase.sign_in_provider in ['google.com', 'github.com']);
+    }
+
+    function isBytes(value, maxSize) {
+      return value is bytes && value.size() <= maxSize;
+    }
+
+    // AES-GCM で包んだ値（iv 12 バイトと暗号文）
+    function isSealed(value) {
+      return value is map
+        && value.keys().hasOnly(['iv', 'ct']) && value.keys().hasAll(['iv', 'ct'])
+        && isBytes(value.iv, 12) && value.iv.size() == 12
+        && isBytes(value.ct, 1024);
+    }
+
+    // 暗号化した中身（DATA_MODEL.md 2.3）。1 件 100KB まで
+    function isEnvelope(value) {
+      return value is map
+        && value.keys().hasOnly(['v', 'iv', 'ct']) && value.keys().hasAll(['v', 'iv', 'ct'])
+        && value.v is int
+        && isBytes(value.iv, 12) && value.iv.size() == 12
+        && isBytes(value.ct, 100 * 1024);
+    }
+
+    function isCryptoHeader(value) {
+      return value is map
+        && value.keys().hasOnly(['v', 'kdf', 'passwordSalt', 'wrappedByPassword', 'recoverySalt', 'wrappedByRecovery'])
+        && value.keys().hasAll(['v', 'kdf', 'passwordSalt', 'wrappedByPassword', 'recoverySalt', 'wrappedByRecovery'])
+        && value.v is int
+        && value.kdf is map
+        && value.kdf.keys().hasOnly(['name', 'm', 't', 'p']) && value.kdf.keys().hasAll(['name', 'm', 't', 'p'])
+        && value.kdf.name == 'argon2id'
+        && value.kdf.m is int && value.kdf.t is int && value.kdf.p is int
+        && isBytes(value.passwordSalt, 64)
+        && isSealed(value.wrappedByPassword)
+        && isBytes(value.recoverySalt, 64)
+        && isSealed(value.wrappedByRecovery);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['createdAt', 'crypto'])
+        && request.resource.data.keys().hasAll(['createdAt', 'crypto'])
+        && request.resource.data.createdAt == request.time
+        && isCryptoHeader(request.resource.data.crypto);
+      // 暗号化パスワードの変更・復旧キーでの再設定（F-83、F-84）では crypto だけを書き換える
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['crypto'])
+        && isCryptoHeader(request.resource.data.crypto);
+
+      match /meta/{name} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && name in ['categories', 'accounts', 'balances', 'budgets', 'recurring']
+          && request.resource.data.keys().hasOnly(['enc']) && request.resource.data.keys().hasAll(['enc'])
+          && isEnvelope(request.resource.data.enc);
+      }
+
+      match /summaries/{month} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && month.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.keys().hasOnly(['enc']) && request.resource.data.keys().hasAll(['enc'])
+          && isEnvelope(request.resource.data.enc);
+      }
+
+      match /transactions/{txId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && isTransaction(request.resource.data)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(uid)
+          && isTransaction(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+      }
+    }
+
+    function isTransaction(data) {
+      return data.keys().hasOnly(['month', 'createdAt', 'updatedAt', 'enc'])
+        && data.keys().hasAll(['month', 'createdAt', 'updatedAt', 'enc'])
+        && data.month is string && data.month.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && isEnvelope(data.enc);
+    }
+  }
+}

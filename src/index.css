@@ -1,0 +1,19 @@
+/* デジタル庁デザインシステム（DADS）の配色・文字・余白などの定義を Tailwind CSS v4 に読み込む */
+@import 'tailwindcss';
+@import '@digital-go-jp/tailwind-theme-plugin/v4';
+
+/* DADS の標準の書体 Noto Sans JP（標準 400・太字 700） */
+@import '@fontsource/noto-sans-jp/400.css';
+@import '@fontsource/noto-sans-jp/700.css';
+
+/* DADS のお手本の部品が使う画面幅。tailwind-theme-plugin v2 では提供されないため、移行ガイドのとおりに定義する */
+@theme {
+  --breakpoint-desktop: 48em;
+  --breakpoint-desktop-admin: 62em;
+}
+
+@layer base {
+  body {
+    @apply bg-white font-sans text-std-16N-170 text-solid-gray-800;
+  }
+}

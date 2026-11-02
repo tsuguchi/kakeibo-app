@@ -42,6 +42,15 @@ export async function loadDeviceKeys(uid: string): Promise<DataKeys | null> {
   }
 }
 
+// その利用者の鍵だけを消す（前の設定の古い鍵を見つけたとき）
+export async function deleteDeviceKeys(uid: string): Promise<void> {
+  try {
+    await run('readwrite', (store) => store.delete(uid))
+  } catch (error) {
+    console.warn('この端末に覚えた鍵を消せませんでした', error)
+  }
+}
+
 // ログアウトのときは、この端末に覚えたすべての利用者の鍵を消す
 export async function clearDeviceKeys(): Promise<void> {
   try {

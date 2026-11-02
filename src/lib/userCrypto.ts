@@ -23,6 +23,7 @@ interface StoredHeader {
   wrappedByPassword: StoredSealed
   recoverySalt: FirestoreBytes
   wrappedByRecovery: StoredSealed
+  keyCheck?: StoredSealed
 }
 
 const toStoredBytes = (bytes: Bytes) => FirestoreBytes.fromUint8Array(bytes)
@@ -38,6 +39,7 @@ function toStored(header: CryptoHeader): StoredHeader {
     wrappedByPassword: toStoredSealed(header.wrappedByPassword),
     recoverySalt: toStoredBytes(header.recoverySalt),
     wrappedByRecovery: toStoredSealed(header.wrappedByRecovery),
+    ...(header.keyCheck ? { keyCheck: toStoredSealed(header.keyCheck) } : {}),
   }
 }
 
@@ -49,6 +51,7 @@ function fromStored(stored: StoredHeader): CryptoHeader {
     wrappedByPassword: fromStoredSealed(stored.wrappedByPassword),
     recoverySalt: fromStoredBytes(stored.recoverySalt),
     wrappedByRecovery: fromStoredSealed(stored.wrappedByRecovery),
+    ...(stored.keyCheck ? { keyCheck: fromStoredSealed(stored.keyCheck) } : {}),
   }
 }
 

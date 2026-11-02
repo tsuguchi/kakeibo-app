@@ -36,7 +36,7 @@ service cloud.firestore {
 
     function isCryptoHeader(value) {
       return value is map
-        && value.keys().hasOnly(['v', 'kdf', 'passwordSalt', 'wrappedByPassword', 'recoverySalt', 'wrappedByRecovery'])
+        && value.keys().hasOnly(['v', 'kdf', 'passwordSalt', 'wrappedByPassword', 'recoverySalt', 'wrappedByRecovery', 'keyCheck'])
         && value.keys().hasAll(['v', 'kdf', 'passwordSalt', 'wrappedByPassword', 'recoverySalt', 'wrappedByRecovery'])
         && value.v is int
         && value.kdf is map
@@ -46,7 +46,9 @@ service cloud.firestore {
         && isBytes(value.passwordSalt, 64)
         && isSealed(value.wrappedByPassword)
         && isBytes(value.recoverySalt, 64)
-        && isSealed(value.wrappedByRecovery);
+        && isSealed(value.wrappedByRecovery)
+        // 端末に覚えた鍵の確かめ（あとから足した項目なので、なくてもよい）
+        && (!('keyCheck' in value) || isSealed(value.keyCheck));
     }
 
     match /users/{uid} {

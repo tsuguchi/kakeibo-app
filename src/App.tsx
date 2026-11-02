@@ -8,6 +8,7 @@ import { AccountsPage } from './pages/AccountsPage'
 import { BudgetsPage } from './pages/BudgetsPage'
 import { CategoriesPage } from './pages/CategoriesPage'
 import { CsvPage } from './pages/CsvPage'
+import { DeleteAccountPage } from './pages/DeleteAccountPage'
 import { SetupPage } from './pages/crypto/SetupPage'
 import { UnlockPage } from './pages/crypto/UnlockPage'
 import { LoginPage } from './pages/LoginPage'
@@ -50,6 +51,7 @@ function UnlockedApp() {
           <Route path="/settings/categories" element={<CategoriesPage />} />
           <Route path="/settings/recurring" element={<RecurringPage />} />
           <Route path="/settings/csv" element={<CsvPage />} />
+          <Route path="/settings/delete-account" element={<DeleteAccountPage />} />
           <Route path="/settings" element={<SettingsPage header={header} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

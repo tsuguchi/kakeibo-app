@@ -3,6 +3,7 @@ import { decodeCrockford, encodeCrockford, randomBytes } from '../../src/lib/cry
 import { DecryptError, decryptJson, encryptJson, recurringTransactionId } from '../../src/lib/crypto/envelope'
 import {
   changePassword,
+  matchesHeader,
   createKeys,
   resetPasswordWithRecovery,
   unlockWithPassword,
@@ -140,5 +141,27 @@ describe('自動記録の記録 ID（F-62）', () => {
     expect(await recurringTransactionId(again, 'r1', '2026-11')).toBe(id)
     expect(await recurringTransactionId(created.keys, 'r1', '2026-12')).not.toBe(id)
     expect(id).toMatch(/^[A-Za-z0-9_-]{27}$/)
+  })
+})
+
+describe('端末に覚えた鍵の確かめ', () => {
+  test('同じ設定の鍵なら合い、別の設定（最初からやり直した後など）の鍵なら合わない', async () => {
+    const a = await createKeys('correct horse battery', FAST_KDF)
+    const b = await createKeys('correct horse battery', FAST_KDF)
+    expect(a.header.keyCheck).toBeDefined()
+    expect(await matchesHeader(a.keys, a.header)).toBe(true)
+    expect(await matchesHeader(b.keys, a.header)).toBe(false)
+  })
+
+  test('暗号化パスワードを変えても、同じ鍵として合う', async () => {
+    const created = await createKeys('old password!!', FAST_KDF)
+    const header = await changePassword(created.header, 'old password!!', 'new password!!', FAST_KDF)
+    expect(await matchesHeader(created.keys, header)).toBe(true)
+  })
+
+  test('確かめる値のない古い設定では、確かめられないので合うとみなす', async () => {
+    const created = await createKeys('correct horse battery', FAST_KDF)
+    const { keyCheck: _unused, ...old } = created.header
+    expect(await matchesHeader(created.keys, old)).toBe(true)
   })
 })

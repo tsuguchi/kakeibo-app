@@ -125,6 +125,13 @@ describe('users/{uid}', () => {
     await assertFails(setDoc(doc(db, 'users/alice'), { createdAt: serverTimestamp(), crypto: { ...header, passwordSalt: 'salt' } }))
   })
 
+  test('鍵の確かめの値（keyCheck）は、あってもなくてもよいが、形は確かめる', async () => {
+    const db = dbAs('alice')
+    await assertSucceeds(setDoc(doc(db, 'users/alice'), { createdAt: serverTimestamp(), crypto: { ...cryptoHeader(), keyCheck: sealed() } }))
+    await env.clearFirestore()
+    await assertFails(setDoc(doc(db, 'users/alice'), { createdAt: serverTimestamp(), crypto: { ...cryptoHeader(), keyCheck: 'abc' } }))
+  })
+
   test('暗号化パスワードの変更で crypto だけを書き換えられる', async () => {
     await seedUser()
     const db = dbAs('alice')

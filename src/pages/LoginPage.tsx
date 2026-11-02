@@ -12,7 +12,8 @@ import {
   type AuthProvider,
   type User,
 } from 'firebase/auth'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { clearAccountDeleted, wasAccountDeleted } from '../auth/accountDeleted'
 import { Button } from '../components/dads/Button'
 import { ErrorText } from '../components/dads/ErrorText'
 import { Field } from '../components/Field'
@@ -74,7 +75,9 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  // アカウントを削除した直後なら、そのことを知らせる（F-07）
+  const [notice, setNotice] = useState<string | null>(() => (wasAccountDeleted() ? 'アカウントと家計のデータをすべて削除しました。ご利用ありがとうございました。' : null))
+  useEffect(clearAccountDeleted, [])
   // 同じメールアドレスで別の方法を使ってログインしようとしたときの、つなぎ待ちのログイン情報（F-05）
   const [pendingLink, setPendingLink] = useState<{ credential: AuthCredential, label: string } | null>(null)
 

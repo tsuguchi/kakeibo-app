@@ -9,12 +9,13 @@ import { resetPasswordWithRecovery, unlockWithPassword, WrongSecretError, type C
 import { db } from '../../lib/firebase'
 import { updateCryptoHeader } from '../../lib/userCrypto'
 import { useKeys } from '../../keys/context'
+import { DeleteConfirm } from '../DeleteConfirm'
 import { MIN_CRYPTO_PASSWORD, validateNewCryptoPassword } from './passwordRules'
 
 // 新しい端末やブラウザで、暗号化パスワードか復旧キーでデータを開く（F-81、F-84）
 export function UnlockPage({ header }: { header: CryptoHeader }) {
   const { uid, unlock } = useKeys()
-  const [mode, setMode] = useState<'password' | 'recovery'>('password')
+  const [mode, setMode] = useState<'password' | 'recovery' | 'reset'>('password')
   const [password, setPassword] = useState('')
   const [recoveryCode, setRecoveryCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -58,7 +59,7 @@ export function UnlockPage({ header }: { header: CryptoHeader }) {
     }, '復旧キーが違います。区切りの「-」はあってもなくてもかまいません。')
   }
 
-  function switchMode(next: 'password' | 'recovery') {
+  function switchMode(next: 'password' | 'recovery' | 'reset') {
     setMode(next)
     setError(null)
   }
@@ -71,6 +72,22 @@ export function UnlockPage({ header }: { header: CryptoHeader }) {
   )
 
   const headerEnd = <Button type="button" variant="text" size="sm" onClick={logout}>ログアウト</Button>
+
+  // 暗号化パスワードと復旧キーの両方をなくしたとき（F-85）
+  if (mode === 'reset') {
+    return (
+      <Layout title="最初からやり直す" headerEnd={headerEnd}>
+        <p>
+          暗号化パスワードと復旧キーの両方をなくすと、これまでの記録は誰にも開けません（運営する側も開けません）。
+          できるのは、これまでのデータを削除して、暗号化パスワードの設定から始め直すことだけです。
+        </p>
+        <DeleteConfirm mode="reset" />
+        <div>
+          <Button type="button" variant="text" size="md" onClick={() => switchMode('recovery')}>復旧キーで開く</Button>
+        </div>
+      </Layout>
+    )
+  }
 
   if (mode === 'recovery') {
     return (
@@ -109,8 +126,9 @@ export function UnlockPage({ header }: { header: CryptoHeader }) {
             {busy ? '確かめています…' : '新しい暗号化パスワードで開く'}
           </Button>
         </form>
-        <div>
+        <div className="flex flex-col items-start gap-2">
           <Button type="button" variant="text" size="md" onClick={() => switchMode('password')}>暗号化パスワードで開く</Button>
+          <Button type="button" variant="text" size="md" onClick={() => switchMode('reset')}>復旧キーもなくした（最初からやり直す）</Button>
         </div>
       </Layout>
     )

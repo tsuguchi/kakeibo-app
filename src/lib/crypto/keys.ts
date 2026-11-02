@@ -31,6 +31,9 @@ export interface CryptoHeader {
   wrappedByPassword: Sealed
   recoverySalt: Bytes
   wrappedByRecovery: Sealed
+  // 暗号化鍵で決まった値を暗号化したもの。端末に覚えた鍵が今の鍵と同じかを確かめる（別の端末で最初からやり直したときなど）。
+  // 2026-11 より前に作った設定にはない
+  keyCheck?: Sealed
 }
 
 // データの暗号化と、自動記録の記録 ID に使う鍵。どちらも取り出し不可（non-extractable）
@@ -143,7 +146,8 @@ export async function createKeys(password: string, kdf: KdfParams = DEFAULT_KDF)
       recoverySalt,
       wrappedByRecovery: await wrap(master, await recoveryKey(recovery, recoverySalt)),
     }
-    return { header, keys: await deriveDataKeys(master), recoveryCode: groupBy4(encodeCrockford(recovery)) }
+    const keys = await deriveDataKeys(master)
+    return { header: { ...header, keyCheck: await makeKeyCheck(keys) }, keys, recoveryCode: groupBy4(encodeCrockford(recovery)) }
   } finally {
     master.fill(0)
     recovery.fill(0)
@@ -193,5 +197,25 @@ export async function resetPasswordWithRecovery(
   } finally {
     master.fill(0)
     recovery.fill(0)
+  }
+}
+
+const KEY_CHECK_AAD = utf8('kakeibo/key-check/v1')
+const KEY_CHECK_TEXT = utf8('kakeibo key check')
+
+export async function makeKeyCheck(keys: DataKeys): Promise<Sealed> {
+  const iv = randomBytes(12)
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: KEY_CHECK_AAD }, keys.encKey, KEY_CHECK_TEXT))
+  return { iv, ct }
+}
+
+// 鍵が今の設定の鍵と同じなら true。確かめる値がない古い設定では、確かめられないので true
+export async function matchesHeader(keys: DataKeys, header: CryptoHeader): Promise<boolean> {
+  if (!header.keyCheck) return true
+  try {
+    await crypto.subtle.decrypt({ name: 'AES-GCM', iv: header.keyCheck.iv, additionalData: KEY_CHECK_AAD }, keys.encKey, header.keyCheck.ct)
+    return true
+  } catch {
+    return false
   }
 }

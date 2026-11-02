@@ -1,10 +1,11 @@
 // DataStore（記録の読み書き）を、Emulator の本物の Security Rules に対して動かす
 import { readFileSync } from 'node:fs'
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, type Firestore } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, Timestamp, type Firestore } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { createKeys, type DataKeys } from '../../src/lib/crypto/keys'
 import type { RecurringRule } from '../../src/lib/data/recurring'
+import { deleteUserData } from '../../src/lib/data/deleteData'
 import { DataStore } from '../../src/lib/data/repository'
 import type { Account, Balances, Category, ItemList, Summary, Transaction, TransactionData } from '../../src/lib/data/types'
 
@@ -189,6 +190,32 @@ describe('DataStore', () => {
     expect((await balancesOf())![ids.cash]).toBe(3000)
     expect((await store.getMonth('2026-11')).map((tx) => tx.source.kind)).toEqual(['import', 'import'])
     await expect(store.addTransactions([data({ accountId: ids.cash })])).rejects.toThrow('分類を選んでください。')
+  })
+
+  test('データの削除: 本人のデータをすべて消し、ほかの利用者のデータは残す（F-07、F-85）', async () => {
+    const { store, db } = storeFor('alice')
+    const ids = await setup(store)
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore() as unknown as Firestore, 'users/alice'), { createdAt: Timestamp.now() })
+      await setDoc(doc(context.firestore() as unknown as Firestore, 'users/bob/meta/categories'), { enc: 'bob' })
+    })
+    await store.updateBudgets(() => [{ categoryId: ids.food, fromMonth: '2026-11', amount: 1000 }])
+    for (let i = 0; i < 3; i++) {
+      await store.saveTransaction(store.newTransactionId(), data({ date: `2026-1${i}-01`, categoryId: ids.food, accountId: ids.cash }))
+    }
+
+    const progress: number[] = []
+    expect(await deleteUserData(db, 'alice', (n) => progress.push(n))).toBeGreaterThan(8)
+    expect(progress.length).toBeGreaterThan(0)
+    for (const name of ['transactions', 'summaries', 'meta']) {
+      expect((await getDocs(collection(db, 'users', 'alice', name))).size).toBe(0)
+    }
+    expect((await getDoc(doc(db, 'users/alice'))).exists()).toBe(false)
+    // もう一度呼んでも失敗しない（途中で止まったときのやり直し）
+    await deleteUserData(db, 'alice')
+    await env.withSecurityRulesDisabled(async (context) => {
+      expect((await getDoc(doc(context.firestore() as unknown as Firestore, 'users/bob/meta/categories'))).exists()).toBe(true)
+    })
   })
 
   test('正しくない記録は保存しない', async () => {

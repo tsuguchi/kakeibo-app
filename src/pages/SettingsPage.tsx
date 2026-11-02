@@ -123,6 +123,12 @@ export function SettingsPage({ header }: { header: CryptoHeader }) {
         <div>
           <Button type="button" variant="outline" size="lg" onClick={logout}>ログアウト</Button>
         </div>
+        <p>このアプリを使うのをやめるときは、アカウントを削除できます。家計のデータもすべて消えます。</p>
+        <div>
+          <Button asChild variant="text" size="md">
+            <RouterLink to="/settings/delete-account">アカウントを削除する</RouterLink>
+          </Button>
+        </div>
       </section>
     </Layout>
   )

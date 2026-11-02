@@ -1,6 +1,37 @@
 import type { ReactNode } from 'react'
+import { NavLink } from 'react-router'
 
 export const APP_NAME = 'わたしの家計簿'
+
+const NAV_ITEMS = [
+  { to: '/', label: '記録' },
+  { to: '/accounts', label: '口座' },
+  { to: '/settings', label: '設定' },
+]
+
+// 記録を開いた後の画面で使う、画面の切り替え
+export function MainNav() {
+  return (
+    <nav aria-label="画面の切り替え">
+      <ul className="flex gap-4">
+        {NAV_ITEMS.map((item) => (
+          <li key={item.to}>
+            <NavLink
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) =>
+                `text-dns-16B-130 underline-offset-[calc(3/16*1rem)] focus-visible:rounded-4 focus-visible:outline focus-visible:outline-4 focus-visible:outline-black focus-visible:bg-yellow-300 ${
+                  isActive ? 'text-solid-gray-900 underline decoration-[calc(3/16*1rem)]' : 'text-blue-1000 hover:underline'
+                }`}
+            >
+              {item.label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
 
 // 画面の共通の枠。見出しの下に中身を置く
 export function Layout({ title, headerEnd, children }: { title: string, headerEnd?: ReactNode, children: ReactNode }) {
@@ -13,7 +44,7 @@ export function Layout({ title, headerEnd, children }: { title: string, headerEn
             練習用（Emulator）につないでいます。本番のデータではありません。
           </p>
         )}
-        <div className="mx-auto flex max-w-160 items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-160 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
           <p className="text-std-18B-160">{APP_NAME}</p>
           {headerEnd}
         </div>

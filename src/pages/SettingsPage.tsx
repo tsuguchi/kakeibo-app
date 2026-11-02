@@ -3,15 +3,15 @@ import { logout } from '../auth/logout'
 import { Button } from '../components/dads/Button'
 import { ErrorText } from '../components/dads/ErrorText'
 import { Field } from '../components/Field'
-import { Layout } from '../components/Layout'
+import { Layout, MainNav } from '../components/Layout'
 import { changePassword, WrongSecretError, type CryptoHeader } from '../lib/crypto/keys'
 import { db } from '../lib/firebase'
 import { updateCryptoHeader } from '../lib/userCrypto'
 import { useKeys } from '../keys/context'
 import { MIN_CRYPTO_PASSWORD, validateNewCryptoPassword } from './crypto/passwordRules'
 
-// 記録の画面ができるまでの仮のホーム。暗号化パスワードの変更（F-83）とログアウトだけを置く
-export function HomePage({ header }: { header: CryptoHeader }) {
+// 設定。暗号化パスワードの変更（F-83）とログアウト
+export function SettingsPage({ header }: { header: CryptoHeader }) {
   const { uid } = useKeys()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -46,11 +46,7 @@ export function HomePage({ header }: { header: CryptoHeader }) {
   }
 
   return (
-    <Layout
-      title="ホーム"
-      headerEnd={<Button type="button" variant="text" size="sm" onClick={logout}>ログアウト</Button>}
-    >
-      <p>記録を開きました。記録の画面は、これから作ります。</p>
+    <Layout title="設定" headerEnd={<MainNav />}>
 
       <section aria-labelledby="change-heading" className="flex flex-col gap-4">
         <h2 id="change-heading" className="text-std-20B-150">暗号化パスワードの変更</h2>
@@ -88,6 +84,14 @@ export function HomePage({ header }: { header: CryptoHeader }) {
             </Button>
           </div>
         </form>
+      </section>
+
+      <section aria-labelledby="account-heading" className="flex flex-col gap-4">
+        <h2 id="account-heading" className="text-std-20B-150">アカウント</h2>
+        <p>ログアウトすると、この端末に覚えた鍵も消えます。次に開くときは、暗号化パスワードを入力します。</p>
+        <div>
+          <Button type="button" variant="outline" size="lg" onClick={logout}>ログアウト</Button>
+        </div>
       </section>
     </Layout>
   )

@@ -49,11 +49,12 @@ Emulator では、確認メールは実際には送られない。Emulator の�
 ## DADS の部品の使い方
 
 - 部品は npm では配られていない。必要になったものだけ、公式のお手本 [design-system-example-components](https://github.com/digital-go-jp/design-system-example-components)（MIT ライセンス）から `src/components/dads/` に写して使う。
-  - 今あるのは Button・Checkbox・ErrorText・Heading・Input・NotificationBanner・Slot
+  - 今あるのは Button・Checkbox・ErrorText・Heading・Input・NotificationBanner・Radio・Select・Slot
   - 写したお手本の版: コミット `e637c68`（2026-10-21）
 - 写した部品は手を加えずに使う。見た目を変えたいときは、使う側で `className` を足す。
-- お手本は Tailwind CSS v3 向けに書かれている。v4 で見た目が崩れたときは、その部品だけ直し、直した理由をコメントに残す（今は Checkbox の 1 か所）。
+- お手本は Tailwind CSS v3 向けに書かれている。v4 で見た目が崩れたときは、その部品だけ直し、直した理由をコメントに残す（今は Checkbox と Radio の各 1 か所）。
 - お手本が使う画面幅 `desktop:`（48em 以上）は、`src/index.css` で定義している。
 - ボタンを押せなくするときは、DADS の指示どおり `disabled` ではなく `aria-disabled` を使う。
+- 必須の選択肢（`select`）には `required` ではなく `aria-required` を付ける。`required` だと、選ぶ前から「無効」と読み上げられるため。
 - 部品の見た目と使い方は [Storybook](https://design.digital.go.jp/dads/react/) で確かめられる。
 - 文字の大きさは `text-std-16N-170`（本文）のような DADS の名前を使う。色は `text-solid-gray-800`・`bg-key-900` のような DADS の色の名前を使う。

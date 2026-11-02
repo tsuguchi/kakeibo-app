@@ -3,7 +3,7 @@ import { PageMessage } from '../components/PageMessage'
 import type { DataKeys } from '../lib/crypto/keys'
 import { db } from '../lib/firebase'
 import { DataStore } from '../lib/data/repository'
-import type { Account, Balances, Category, ItemList } from '../lib/data/types'
+import type { Account, Balances, Budget, Category, ItemList } from '../lib/data/types'
 import { DataContext } from './context'
 
 // 分類・口座・残高を読み込み、どの画面からも使えるようにする。まだなければ最初の分を用意する
@@ -12,6 +12,8 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
   const [categories, setCategories] = useState<Category[] | null | undefined>(undefined)
   const [accounts, setAccounts] = useState<Account[] | null | undefined>(undefined)
   const [balances, setBalances] = useState<Balances | null | undefined>(undefined)
+  // 予算はまだ設定していなければドキュメントがないので、空の一覧として扱う
+  const [budgets, setBudgets] = useState<Budget[] | undefined>(undefined)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
       store.subscribeMeta<ItemList<Category>>('categories', (value) => setCategories(value?.items ?? null), setError),
       store.subscribeMeta<ItemList<Account>>('accounts', (value) => setAccounts(value?.items ?? null), setError),
       store.subscribeMeta<Balances>('balances', setBalances, setError),
+      store.subscribeMeta<ItemList<Budget>>('budgets', (value) => setBudgets(value?.items ?? []), setError),
     ]
     return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
   }, [store])
@@ -36,7 +39,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
       </PageMessage>
     )
   }
-  if (!categories || !accounts || !balances) return <PageMessage>読み込み中…</PageMessage>
+  if (!categories || !accounts || !balances || !budgets) return <PageMessage>読み込み中…</PageMessage>
 
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]))
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]))
@@ -48,6 +51,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
         categories,
         accounts,
         balances,
+        budgets,
         categoryName: (id) => (id && categoryNames.get(id)) || '（不明な分類）',
         accountName: (id) => (id && accountNames.get(id)) || '（不明な口座）',
       }}

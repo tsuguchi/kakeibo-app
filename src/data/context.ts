@@ -1,12 +1,13 @@
 import { createContext, useContext } from 'react'
 import type { DataStore } from '../lib/data/repository'
-import type { Account, Balances, Category } from '../lib/data/types'
+import type { Account, Balances, Budget, Category } from '../lib/data/types'
 
 export interface DataState {
   store: DataStore
   categories: Category[]
   accounts: Account[]
   balances: Balances
+  budgets: Budget[]
   categoryName: (id: string | null) => string
   accountName: (id: string | null) => string
 }

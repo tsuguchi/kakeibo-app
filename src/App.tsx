@@ -5,12 +5,15 @@ import { DataProvider } from './data/DataProvider'
 import { useKeys } from './keys/context'
 import { KeyProvider } from './keys/KeyProvider'
 import { AccountsPage } from './pages/AccountsPage'
+import { BudgetsPage } from './pages/BudgetsPage'
+import { CategoriesPage } from './pages/CategoriesPage'
 import { SetupPage } from './pages/crypto/SetupPage'
 import { UnlockPage } from './pages/crypto/UnlockPage'
 import { LoginPage } from './pages/LoginPage'
 import { RecordFormPage } from './pages/records/RecordFormPage'
 import { RecordsPage } from './pages/records/RecordsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SummaryPage } from './pages/SummaryPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 // ログイン → メールアドレスの確認 → 暗号化パスワードの設定またはデータを開く → 記録の画面、の順に進める。
@@ -39,7 +42,10 @@ function UnlockedApp() {
           <Route path="/" element={<RecordsPage />} />
           <Route path="/records/new" element={<RecordFormPage />} />
           <Route path="/records/:id" element={<RecordFormPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
+          <Route path="/settings/categories" element={<CategoriesPage />} />
           <Route path="/settings" element={<SettingsPage header={header} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

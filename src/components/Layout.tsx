@@ -5,6 +5,8 @@ export const APP_NAME = 'わたしの家計簿'
 
 const NAV_ITEMS = [
   { to: '/', label: '記録' },
+  { to: '/summary', label: '集計' },
+  { to: '/budgets', label: '予算' },
   { to: '/accounts', label: '口座' },
   { to: '/settings', label: '設定' },
 ]
@@ -13,7 +15,7 @@ const NAV_ITEMS = [
 export function MainNav() {
   return (
     <nav aria-label="画面の切り替え">
-      <ul className="flex gap-4">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
         {NAV_ITEMS.map((item) => (
           <li key={item.to}>
             <NavLink

@@ -18,7 +18,7 @@ import type { DataKeys } from '../crypto/keys'
 import { decryptJson, encryptJson, type Envelope } from '../crypto/envelope'
 import { defaultAccounts, defaultCategories } from './defaults'
 import { applyToBalances, applyToSummary, emptySummary, monthOf, validateTransaction } from './ledger'
-import type { Account, Balances, ItemList, Summary, Transaction, TransactionData } from './types'
+import type { Account, Balances, Budget, Category, ItemList, Summary, Transaction, TransactionData } from './types'
 
 export type MetaName = 'categories' | 'accounts' | 'balances' | 'budgets' | 'recurring'
 
@@ -157,6 +157,45 @@ export class DataStore {
       const next = { items: [...accounts.items, { ...account, order: accounts.items.length }] }
       transaction.set(accountsRef, { enc: await this.encrypt(accountsRef, next) })
       transaction.set(balancesRef, { enc: await this.encrypt(balancesRef, { ...balances, [account.id]: account.openingBalance }) })
+    })
+  }
+
+  // meta の 1 つのドキュメントを読み直してから書き換える。別の端末と同時に変えても、片方の変更が消えない
+  private async updateMeta<T>(name: MetaName, update: (current: T | null) => T): Promise<void> {
+    const ref = this.metaRef(name)
+    await runTransaction(this.db, async (transaction) => {
+      const current = await this.readInTransaction<T>(transaction, ref)
+      transaction.set(ref, { enc: await this.encrypt(ref, update(current)) })
+    })
+  }
+
+  // 分類の追加・名前の変更・並べ替え・非表示（F-21）
+  updateCategories(update: (items: Category[]) => Category[]): Promise<void> {
+    return this.updateMeta<ItemList<Category>>('categories', (current) => ({ items: update(current?.items ?? []) }))
+  }
+
+  // 予算の変更（F-50〜F-52）
+  updateBudgets(update: (items: Budget[]) => Budget[]): Promise<void> {
+    return this.updateMeta<ItemList<Budget>>('budgets', (current) => ({ items: update(current?.items ?? []) }))
+  }
+
+  // 口座の名前の変更・並べ替え・非表示（F-32）。使い始めの残高を変えたときは、その差を今の残高にも反映する
+  async updateAccounts(update: (items: Account[]) => Account[]): Promise<void> {
+    const accountsRef = this.metaRef('accounts')
+    const balancesRef = this.metaRef('balances')
+    await runTransaction(this.db, async (transaction) => {
+      const before = (await this.readInTransaction<ItemList<Account>>(transaction, accountsRef))?.items ?? []
+      const balances = (await this.readInTransaction<Balances>(transaction, balancesRef)) ?? {}
+      const after = update(before)
+      const nextBalances = { ...balances }
+      for (const account of after) {
+        const previous = before.find((item) => item.id === account.id)
+        if (previous && previous.openingBalance !== account.openingBalance) {
+          nextBalances[account.id] = (nextBalances[account.id] ?? 0) + account.openingBalance - previous.openingBalance
+        }
+      }
+      transaction.set(accountsRef, { enc: await this.encrypt(accountsRef, { items: after }) })
+      transaction.set(balancesRef, { enc: await this.encrypt(balancesRef, nextBalances) })
     })
   }
 

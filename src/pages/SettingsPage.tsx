@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { logout } from '../auth/logout'
 import { Button } from '../components/dads/Button'
 import { ErrorText } from '../components/dads/ErrorText'
@@ -47,6 +48,16 @@ export function SettingsPage({ header }: { header: CryptoHeader }) {
 
   return (
     <Layout title="設定" headerEnd={<MainNav />}>
+      <section aria-labelledby="categories-heading" className="flex flex-col gap-4">
+        <h2 id="categories-heading" className="text-std-20B-150">分類</h2>
+        <p>記録のときに選ぶ分類の追加・名前の変更・並べ替え・非表示ができます。</p>
+        <div>
+          <Button asChild variant="outline" size="lg">
+            <RouterLink to="/settings/categories">分類を編集する</RouterLink>
+          </Button>
+        </div>
+      </section>
+
 
       <section aria-labelledby="change-heading" className="flex flex-col gap-4">
         <h2 id="change-heading" className="text-std-20B-150">暗号化パスワードの変更</h2>

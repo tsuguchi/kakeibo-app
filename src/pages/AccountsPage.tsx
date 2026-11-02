@@ -4,10 +4,11 @@ import { ErrorText } from '../components/dads/ErrorText'
 import { Select } from '../components/dads/Select'
 import { Field } from '../components/Field'
 import { Layout, MainNav } from '../components/Layout'
+import { ManageList } from '../components/ManageList'
 import { useData } from '../data/context'
 import { newId } from '../lib/data/defaults'
-import { formatYen, MAX_AMOUNT } from '../lib/data/ledger'
-import { ACCOUNT_TYPE_LABELS, type AccountType } from '../lib/data/types'
+import { formatYen, MAX_AMOUNT, moveItem } from '../lib/data/ledger'
+import { ACCOUNT_TYPE_LABELS, type Account, type AccountType } from '../lib/data/types'
 
 // 使い始めの残高はマイナスもあり得る（クレジットカードの未払い分など）
 function parseSignedAmount(text: string): number | null {
@@ -98,6 +99,18 @@ export function AccountsPage() {
         <p className="text-dns-14N-130 text-solid-gray-600">クレジットカードは、まだ払っていない金額をマイナスで表します。</p>
       </section>
 
+      <section aria-labelledby="manage-heading" className="flex flex-col gap-4">
+        <h2 id="manage-heading" className="text-std-20B-150">口座の管理</h2>
+        <ManageList
+          label="口座の一覧"
+          items={accounts}
+          describe={(account) => `${ACCOUNT_TYPE_LABELS[account.type]}・使い始めの残高 ${formatSigned(account.openingBalance)}`}
+          onMove={(id, delta) => store.updateAccounts((items) => moveItem(items, id, delta, (a, b) => a.hidden === b.hidden))}
+          onToggleHidden={(id) => store.updateAccounts((items) => items.map((item) => (item.id === id ? { ...item, hidden: !item.hidden } : item)))}
+          renderEditor={(account, close) => <AccountEditor account={account} onDone={close} />}
+        />
+      </section>
+
       <section aria-labelledby="add-heading" className="flex flex-col gap-4">
         <h2 id="add-heading" className="text-std-20B-150">口座を追加する</h2>
         <form className="flex flex-col gap-6" onSubmit={submit} noValidate>
@@ -127,5 +140,71 @@ export function AccountsPage() {
         </form>
       </section>
     </Layout>
+  )
+}
+
+function formatSigned(amount: number): string {
+  return `${amount < 0 ? '−' : ''}${formatYen(Math.abs(amount))}`
+}
+
+// 口座の名前・種類・使い始めの残高の変更（F-32）。使い始めの残高を変えると、今の残高も同じだけ変わる
+function AccountEditor({ account, onDone }: { account: Account, onDone: () => void }) {
+  const { store } = useData()
+  const [name, setName] = useState(account.name)
+  const [type, setType] = useState<AccountType>(account.type)
+  const [opening, setOpening] = useState(String(account.openingBalance))
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const typeId = useId()
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    const trimmed = name.trim()
+    const openingBalance = parseSignedAmount(opening)
+    if (!trimmed) {
+      setError('口座の名前を入力してください。')
+      return
+    }
+    if (openingBalance === null) {
+      setError('使い始めの残高は整数で入力してください（マイナスのときは先頭に「-」）。')
+      return
+    }
+    setBusy(true)
+    try {
+      await store.updateAccounts((items) => items.map((item) => (item.id === account.id ? { ...item, name: trimmed, type, openingBalance } : item)))
+      onDone()
+    } catch (caught) {
+      console.error(caught)
+      setError('変更できませんでした。インターネットの接続を確かめて、もう一度お試しください。')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={submit} noValidate aria-label={`「${account.name}」の変更`}>
+      <Field label="名前" required maxLength={40} autoFocus value={name} onChange={(event) => setName(event.target.value)} />
+      <div className="flex flex-col gap-2">
+        <label htmlFor={typeId} className="text-std-17B-170">種類</label>
+        <Select id={typeId} className="w-full desktop:w-80" value={type} onChange={(event) => setType(event.target.value as AccountType)}>
+          {(Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[]).map((value) => (
+            <option key={value} value={value}>{ACCOUNT_TYPE_LABELS[value]}</option>
+          ))}
+        </Select>
+      </div>
+      <Field
+        label="使い始めの残高（円）"
+        inputMode="numeric"
+        autoComplete="off"
+        className="w-60"
+        support="変えると、今の残高も同じ金額だけ変わります。"
+        value={opening}
+        onChange={(event) => setOpening(event.target.value)}
+      />
+      {error && <ErrorText role="alert">{error}</ErrorText>}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" variant="solid-fill" size="md" aria-disabled={busy}>保存する</Button>
+        <Button type="button" variant="outline" size="md" onClick={onDone}>やめる</Button>
+      </div>
+    </form>
   )
 }

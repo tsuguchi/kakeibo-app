@@ -1,6 +1,6 @@
 // 記録の追加・変更・削除で、月ごとの集計と口座の残高をどう変えるか（DATA_MODEL.md 4.1）。
 // Firestore に触れない計算だけをここに置き、テストしやすくする
-import type { Balances, Summary, TransactionData } from './types'
+import type { Balances, Budget, Summary, TransactionData } from './types'
 
 export function monthOf(date: string): string {
   return date.slice(0, 7)
@@ -98,4 +98,33 @@ export function formatYen(amount: number): string {
 export function formatMonth(month: string): string {
   const [year, monthNumber] = month.split('-').map(Number)
   return `${year}年${monthNumber}月`
+}
+
+// その月の分類の予算（F-52）。設定がなければ null
+export function budgetFor(budgets: Budget[], categoryId: string, month: string): number | null {
+  let found: Budget | null = null
+  for (const budget of budgets) {
+    if (budget.categoryId !== categoryId || budget.fromMonth > month) continue
+    if (!found || budget.fromMonth > found.fromMonth) found = budget
+  }
+  return found?.amount ?? null
+}
+
+// その月から先の予算を決める。同じ分類・同じ月の設定があれば置き換える
+export function setBudget(budgets: Budget[], categoryId: string, month: string, amount: number | null): Budget[] {
+  const rest = budgets.filter((budget) => !(budget.categoryId === categoryId && budget.fromMonth === month))
+  return [...rest, { categoryId, fromMonth: month, amount }]
+}
+
+// 並び順を 1 つ動かす（上へ: -1、下へ: +1）。同じ種類の中だけで入れ替え、order を振り直す
+export function moveItem<T extends { id: string, order: number }>(items: T[], id: string, delta: -1 | 1, sameGroup: (a: T, b: T) => boolean = () => true): T[] {
+  const target = items.find((item) => item.id === id)
+  if (!target) return items
+  const group = items.filter((item) => sameGroup(item, target)).sort((a, b) => a.order - b.order)
+  const index = group.findIndex((item) => item.id === id)
+  const swapIndex = index + delta
+  if (swapIndex < 0 || swapIndex >= group.length) return items
+  ;[group[index], group[swapIndex]] = [group[swapIndex], group[index]]
+  const orders = new Map(group.map((item, order) => [item.id, order]))
+  return items.map((item) => (orders.has(item.id) ? { ...item, order: orders.get(item.id)! } : item))
 }

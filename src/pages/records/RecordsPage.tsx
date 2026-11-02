@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link as RouterLink, useSearchParams } from 'react-router'
+import { Link as RouterLink } from 'react-router'
 import { Button } from '../../components/dads/Button'
 import { Input } from '../../components/dads/Input'
 import { Layout, MainNav } from '../../components/Layout'
+import { MonthSwitcher } from '../../components/MonthSwitcher'
+import { useMonth } from '../../components/useMonth'
 import { useData } from '../../data/context'
-import { emptySummary, formatMonth, formatYen, monthOf, shiftMonth, today } from '../../lib/data/ledger'
+import { emptySummary, formatMonth, formatYen, monthOf, today } from '../../lib/data/ledger'
 import type { Summary, Transaction } from '../../lib/data/types'
 import { amountLabel } from './amount'
-
-function useMonth(): [string, (month: string) => void] {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const param = searchParams.get('month')
-  const month = param && /^\d{4}-(0[1-9]|1[0-2])$/.test(param) ? param : monthOf(today())
-  return [month, (next) => setSearchParams({ month: next })]
-}
 
 // 記録の一覧（ホーム）。月ごとの収入・支出・差額と、その月の記録（F-13、F-40）
 export function RecordsPage() {
@@ -53,19 +48,7 @@ export function RecordsPage() {
 
   return (
     <Layout title={formatMonth(month)} headerEnd={<MainNav />}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="md" onClick={() => setMonth(shiftMonth(month, -1))}>
-          前の月
-        </Button>
-        <Button type="button" variant="outline" size="md" onClick={() => setMonth(shiftMonth(month, 1))}>
-          次の月
-        </Button>
-        {month !== monthOf(today()) && (
-          <Button type="button" variant="text" size="md" onClick={() => setMonth(monthOf(today()))}>
-            今月に戻る
-          </Button>
-        )}
-      </div>
+      <MonthSwitcher month={month} onChange={setMonth} />
 
       <section aria-labelledby="summary-heading">
         <h2 id="summary-heading" className="sr-only">{formatMonth(month)}の収支</h2>

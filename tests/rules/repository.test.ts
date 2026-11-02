@@ -114,6 +114,27 @@ describe('DataStore', () => {
     expect(serialized).not.toContain('ひみつ')
   })
 
+  test('口座の使い始めの残高を変えると、今の残高も同じだけ変わる', async () => {
+    const { store } = storeFor('alice')
+    const ids = await setup(store)
+    await store.saveTransaction(store.newTransactionId(), data({ amount: 800, categoryId: ids.food, accountId: ids.cash }))
+    await store.updateAccounts((items) => items.map((item) => (item.id === ids.cash ? { ...item, name: 'さいふ', openingBalance: 5000 } : item)))
+    expect((await balancesOf())![ids.cash]).toBe(4200)
+    const accounts = await first<ItemList<Account> | null>((ok, ng) => fresh().subscribeMeta('accounts', ok, ng))
+    expect(accounts!.items[0]).toMatchObject({ name: 'さいふ', openingBalance: 5000 })
+  })
+
+  test('予算と分類を変えられる', async () => {
+    const { store } = storeFor('alice')
+    const ids = await setup(store)
+    await store.updateBudgets((items) => [...items, { categoryId: ids.food, fromMonth: '2026-11', amount: 30000 }])
+    await store.updateCategories((items) => items.map((item) => (item.id === ids.food ? { ...item, hidden: true } : item)))
+    const budgets = await first<ItemList<{ amount: number }> | null>((ok, ng) => fresh().subscribeMeta('budgets', ok, ng))
+    const categories = await first<ItemList<Category> | null>((ok, ng) => fresh().subscribeMeta('categories', ok, ng))
+    expect(budgets!.items[0].amount).toBe(30000)
+    expect(categories!.items.find((c) => c.id === ids.food)!.hidden).toBe(true)
+  })
+
   test('正しくない記録は保存しない', async () => {
     const { store } = storeFor('alice')
     const ids = await setup(store)

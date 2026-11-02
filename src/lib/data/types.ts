@@ -62,6 +62,14 @@ export interface Summary {
   byCategory: Record<string, number>
 }
 
+// 予算（meta/budgets の enc の items）。ある月の予算は、その分類の fromMonth がその月以前のもののうち
+// いちばん新しいものを使う。amount が null なら、その月からは予算なし（DATA_MODEL.md 3 章）
+export interface Budget {
+  categoryId: string
+  fromMonth: string
+  amount: number | null
+}
+
 // 口座ごとの今の残高（meta/balances の enc）
 export type Balances = Record<string, number>
 

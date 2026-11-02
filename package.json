@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run tests/unit",
     "emulators": "firebase emulators:start --project demo-kakeibo",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-kakeibo \"vitest run tests/rules\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-kakeibo \"vitest run tests/rules\"",
+    "deploy:rules": "firebase deploy --only firestore"
   },
   "dependencies": {
     "@digital-go-jp/tailwind-theme-plugin": "^2.0.0",

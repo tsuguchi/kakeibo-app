@@ -24,8 +24,17 @@ Java（Firebase Emulator が使う）と Node.js が必要。
 3. `npm run emulators` で Firebase Emulator を起動する（Emulator の管理画面は http://localhost:4000）
 4. 別のターミナルで `npm run dev` を実行し、http://localhost:5173 を開く
 
+開発中の画面の上に黄色の帯「練習用（Emulator）につないでいます」が出ていれば、練習用の Firebase につながっている。
+
 Emulator では、確認メールは実際には送られない。Emulator の管理画面の Authentication か、
 `http://localhost:9099/emulator/v1/projects/demo-kakeibo/oobCodes` に出るリンクを開くと、確認が済んだことになる。
+
+## 本番の Firebase
+
+- プロジェクト ID: `kakeibo-app-61efb`（Firestore は `asia-northeast1`、Spark プラン）
+- 本番の接続先は `.env.production.local` に書く（Git には入らない）。値は Firebase コンソールの「プロジェクトの設定」→「マイアプリ」にある
+- `npx vite --mode production` で、本番につないだ開発サーバーを起動できる
+- Google・GitHub でのログインは小さな窓（ポップアップ）を使うので、VS Code の中のブラウザでは最後まで進めない。ふだんのブラウザで開く
 
 ## コマンド
 
@@ -35,6 +44,7 @@ Emulator では、確認メールは実際には送られない。Emulator の�
 - `npm test`: 暗号化などのテスト（`tests/unit`）
 - `npm run test:rules`: Firestore の Security Rules のテスト（`tests/rules`。Emulator を自動で起動・終了する）
 - `npm run emulators`: Firebase Emulator を起動する
+- `npm run deploy:rules`: Security Rules とインデックスを本番に反映する
 
 ## DADS の部品の使い方
 

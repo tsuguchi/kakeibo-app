@@ -111,12 +111,14 @@ export function RecordsPage() {
                     <span className="min-w-0">
                       <span className="block truncate text-std-16B-170">
                         {tx.type === 'transfer' ? '振替' : categoryName(tx.categoryId)}
-                        {tx.source.kind === 'recurring' && (
-                          <span className="ml-2 text-dns-14N-130 text-solid-gray-600">
-                            （自動{tx.source.originalDate && tx.source.originalDate !== tx.date ? `・休日のため ${formatDay(tx.source.originalDate)}から移動` : ''}）
-                          </span>
-                        )}
+                        {tx.source.kind === 'recurring' && <span className="ml-2 text-dns-14N-130 text-solid-gray-600">（自動）</span>}
                       </span>
+                      {/* 休日でずらした日付は、狭い画面でも省略せずに読めるよう、折り返す別の行に出す */}
+                      {tx.source.kind === 'recurring' && tx.source.originalDate && tx.source.originalDate !== tx.date && (
+                        <span className="block text-dns-14N-130 text-solid-gray-600">
+                          休日のため {formatDay(tx.source.originalDate)}から移動
+                        </span>
+                      )}
                       <span className="block truncate text-dns-14N-130 text-solid-gray-600">
                         {tx.type === 'transfer' ? `${accountName(tx.accountId)} → ${accountName(tx.toAccountId)}` : accountName(tx.accountId)}
                         {tx.memo && `・${tx.memo}`}

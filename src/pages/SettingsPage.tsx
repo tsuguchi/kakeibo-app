@@ -58,6 +58,26 @@ export function SettingsPage({ header }: { header: CryptoHeader }) {
         </div>
       </section>
 
+      <section aria-labelledby="recurring-heading" className="flex flex-col gap-4">
+        <h2 id="recurring-heading" className="text-std-20B-150">毎月の自動記録</h2>
+        <p>家賃やサブスクなど、毎月同じ記録を自動で付けます。</p>
+        <div>
+          <Button asChild variant="outline" size="lg">
+            <RouterLink to="/settings/recurring">自動記録を設定する</RouterLink>
+          </Button>
+        </div>
+      </section>
+
+      <section aria-labelledby="csv-heading" className="flex flex-col gap-4">
+        <h2 id="csv-heading" className="text-std-20B-150">CSV の書き出し・取り込み</h2>
+        <p>記録を CSV ファイルに保存したり、銀行やカード会社の明細を取り込んだりできます。</p>
+        <div>
+          <Button asChild variant="outline" size="lg">
+            <RouterLink to="/settings/csv">CSV の画面を開く</RouterLink>
+          </Button>
+        </div>
+      </section>
+
 
       <section aria-labelledby="change-heading" className="flex flex-col gap-4">
         <h2 id="change-heading" className="text-std-20B-150">暗号化パスワードの変更</h2>

@@ -7,11 +7,13 @@ import { KeyProvider } from './keys/KeyProvider'
 import { AccountsPage } from './pages/AccountsPage'
 import { BudgetsPage } from './pages/BudgetsPage'
 import { CategoriesPage } from './pages/CategoriesPage'
+import { CsvPage } from './pages/CsvPage'
 import { SetupPage } from './pages/crypto/SetupPage'
 import { UnlockPage } from './pages/crypto/UnlockPage'
 import { LoginPage } from './pages/LoginPage'
 import { RecordFormPage } from './pages/records/RecordFormPage'
 import { RecordsPage } from './pages/records/RecordsPage'
+import { RecurringPage } from './pages/RecurringPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
@@ -46,6 +48,8 @@ function UnlockedApp() {
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/settings/categories" element={<CategoriesPage />} />
+          <Route path="/settings/recurring" element={<RecurringPage />} />
+          <Route path="/settings/csv" element={<CsvPage />} />
           <Route path="/settings" element={<SettingsPage header={header} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

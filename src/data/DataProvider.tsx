@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { PageMessage } from '../components/PageMessage'
 import type { DataKeys } from '../lib/crypto/keys'
 import { db } from '../lib/firebase'
+import { today } from '../lib/data/ledger'
+import type { RecurringRule } from '../lib/data/recurring'
 import { DataStore } from '../lib/data/repository'
 import type { Account, Balances, Budget, Category, ItemList } from '../lib/data/types'
 import { DataContext } from './context'
@@ -14,6 +16,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
   const [balances, setBalances] = useState<Balances | null | undefined>(undefined)
   // 予算はまだ設定していなければドキュメントがないので、空の一覧として扱う
   const [budgets, setBudgets] = useState<Budget[] | undefined>(undefined)
+  const [recurring, setRecurring] = useState<RecurringRule[] | undefined>(undefined)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
@@ -22,6 +25,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
       store.subscribeMeta<ItemList<Account>>('accounts', (value) => setAccounts(value?.items ?? null), setError),
       store.subscribeMeta<Balances>('balances', setBalances, setError),
       store.subscribeMeta<ItemList<Budget>>('budgets', (value) => setBudgets(value?.items ?? []), setError),
+      store.subscribeMeta<ItemList<RecurringRule>>('recurring', (value) => setRecurring(value?.items ?? []), setError),
     ]
     return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
   }, [store])
@@ -31,6 +35,15 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
     if (categories === null) store.ensureDefaults().catch(setError)
   }, [categories, store])
 
+  // 開いたときと、自動記録の設定が変わったときに、日付が来た分を記録する（F-61）。
+  // 作る分がなければ何も書き込まないので、設定の書き換えで繰り返し動き続けることはない
+  // 残高ができる前（初めて開いた直後）には動かさない
+  const ready = Boolean(balances)
+  useEffect(() => {
+    if (!recurring || !ready) return
+    store.runRecurring(today()).catch((caught) => console.error('毎月の自動記録を作れませんでした', caught))
+  }, [recurring, ready, store])
+
   if (error) {
     console.error(error)
     return (
@@ -39,7 +52,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
       </PageMessage>
     )
   }
-  if (!categories || !accounts || !balances || !budgets) return <PageMessage>読み込み中…</PageMessage>
+  if (!categories || !accounts || !balances || !budgets || !recurring) return <PageMessage>読み込み中…</PageMessage>
 
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]))
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]))
@@ -52,6 +65,7 @@ export function DataProvider({ uid, keys, children }: { uid: string, keys: DataK
         accounts,
         balances,
         budgets,
+        recurring,
         categoryName: (id) => (id && categoryNames.get(id)) || '（不明な分類）',
         accountName: (id) => (id && accountNames.get(id)) || '（不明な口座）',
       }}

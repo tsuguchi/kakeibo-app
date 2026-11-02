@@ -45,6 +45,13 @@ Emulator では、確認メールは実際には送られない。Emulator の�
 - `npm run test:rules`: Firestore の Security Rules のテスト（`tests/rules`。Emulator を自動で起動・終了する）
 - `npm run emulators`: Firebase Emulator を起動する
 - `npm run deploy:rules`: Security Rules とインデックスを本番に反映する
+- `npm run holidays`: 内閣府の祝日の一覧から `src/lib/data/holidays.json` を作り直す
+
+## 毎年の作業: 祝日の一覧の更新
+
+毎月の自動記録で休日をずらすために、内閣府の「国民の祝日」の一覧をアプリに組み込んでいる。
+内閣府は翌年分を例年 2 月ごろに公開するので、公開されたら `npm run holidays` を実行し、変わった `holidays.json` をコミットして公開し直す。
+組み込んだ一覧より先の年は、土日と年末年始（12/31〜1/3）だけを休日として扱う。
 
 ## DADS の部品の使い方
 

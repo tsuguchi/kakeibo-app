@@ -11,7 +11,8 @@
     "test": "vitest run tests/unit",
     "emulators": "firebase emulators:start --project demo-kakeibo",
     "test:rules": "firebase emulators:exec --only firestore --project demo-kakeibo \"vitest run tests/rules\"",
-    "deploy:rules": "firebase deploy --only firestore"
+    "deploy:rules": "firebase deploy --only firestore",
+    "holidays": "node scripts/update-holidays.mjs"
   },
   "dependencies": {
     "@digital-go-jp/tailwind-theme-plugin": "^2.0.0",

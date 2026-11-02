@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   runTransaction,
@@ -15,9 +16,10 @@ import {
   type Transaction as FirestoreTransaction,
 } from 'firebase/firestore'
 import type { DataKeys } from '../crypto/keys'
-import { decryptJson, encryptJson, type Envelope } from '../crypto/envelope'
+import { decryptJson, encryptJson, recurringTransactionId, type Envelope } from '../crypto/envelope'
 import { defaultAccounts, defaultCategories } from './defaults'
 import { applyToBalances, applyToSummary, emptySummary, monthOf, validateTransaction } from './ledger'
+import { dueOccurrences, type Occurrence, type RecurringRule } from './recurring'
 import type { Account, Balances, Budget, Category, ItemList, Summary, Transaction, TransactionData } from './types'
 
 export type MetaName = 'categories' | 'accounts' | 'balances' | 'budgets' | 'recurring'
@@ -172,6 +174,115 @@ export class DataStore {
   // 分類の追加・名前の変更・並べ替え・非表示（F-21）
   updateCategories(update: (items: Category[]) => Category[]): Promise<void> {
     return this.updateMeta<ItemList<Category>>('categories', (current) => ({ items: update(current?.items ?? []) }))
+  }
+
+  // その月の記録を 1 回だけ読む（CSV の書き出しと、取り込みのときの重複の見分けに使う）
+  async getMonth(month: string): Promise<Transaction[]> {
+    const snapshot = await getDocs(query(collection(this.db, 'users', this.uid, 'transactions'), where('month', '==', month)))
+    return Promise.all(
+      snapshot.docs.map(async (docSnapshot) => ({
+        ...(await this.decrypt<TransactionData>(docSnapshot))!,
+        id: docSnapshot.id,
+        month: docSnapshot.get('month') as string,
+      })),
+    )
+  }
+
+  // 取り込んだ記録をまとめて保存する（F-73）。集計と残高も同じトランザクションで更新する。
+  // 1 回のトランザクションの書き込み件数の上限（500 件）に収まるよう、呼ぶ側で 50 件ずつに分ける
+  async addTransactions(items: TransactionData[]): Promise<void> {
+    for (const item of items) {
+      const invalid = validateTransaction(item)
+      if (invalid) throw new Error(invalid)
+    }
+    const balancesRef = this.metaRef('balances')
+    const withIds = items.map((data) => ({ id: this.newTransactionId(), data }))
+    await runTransaction(this.db, async (transaction) => {
+      const months = [...new Set(items.map((item) => monthOf(item.date)))]
+      const summaries = new Map<string, Summary>()
+      for (const month of months) {
+        summaries.set(month, (await this.readInTransaction<Summary>(transaction, this.summaryRef(month))) ?? emptySummary())
+      }
+      let balances = (await this.readInTransaction<Balances>(transaction, balancesRef)) ?? {}
+      for (const { id, data } of withIds) {
+        const month = monthOf(data.date)
+        summaries.set(month, applyToSummary(summaries.get(month)!, data, 1))
+        balances = applyToBalances(balances, data, 1)
+        const txRef = this.transactionRef(id)
+        transaction.set(txRef, { month, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), enc: await this.encrypt(txRef, data) })
+      }
+      for (const [month, summary] of summaries) {
+        const ref = this.summaryRef(month)
+        transaction.set(ref, { enc: await this.encrypt(ref, summary) })
+      }
+      transaction.set(balancesRef, { enc: await this.encrypt(balancesRef, balances) })
+    })
+  }
+
+  // 毎月の自動記録の設定の追加・変更・停止（F-60、F-64）。すでに記録した分は変わらない
+  updateRecurring(update: (items: RecurringRule[]) => RecurringRule[]): Promise<void> {
+    return this.updateMeta<ItemList<RecurringRule>>('recurring', (current) => ({ items: update(current?.items ?? []) }))
+  }
+
+  // 今日までに日付が来た自動記録を作る（F-61、F-62、DATA_MODEL.md 4.2）。作った件数を返す。
+  // 設定・記録・集計・残高を 1 つのトランザクションで書くので、2 台で同時に開いても二重にならない
+  async runRecurring(today: string, maxPerRun = 60): Promise<number> {
+    const recurringRef = this.metaRef('recurring')
+    const balancesRef = this.metaRef('balances')
+    return runTransaction(this.db, async (transaction) => {
+      const rules = (await this.readInTransaction<ItemList<RecurringRule>>(transaction, recurringRef))?.items ?? []
+      // 1 回のトランザクションの書き込み件数の上限（500 件）に収まるよう、件数を区切る。残りは次に開いたときに作る
+      const planned: { rule: RecurringRule, occurrence: Occurrence, id: string }[] = []
+      for (const rule of rules) {
+        for (const occurrence of dueOccurrences(rule, today)) {
+          if (planned.length >= maxPerRun) break
+          planned.push({ rule, occurrence, id: await recurringTransactionId(this.keys, rule.id, occurrence.month) })
+        }
+      }
+      if (planned.length === 0) return 0
+
+      // 読み込みはすべて書き込みより前に行う
+      const existing = await Promise.all(planned.map(({ id }) => transaction.get(this.transactionRef(id))))
+      const toCreate = planned.filter((_, index) => !existing[index].exists())
+      const months = [...new Set(toCreate.map(({ occurrence }) => monthOf(occurrence.date)))]
+      const summaries = new Map<string, Summary>()
+      for (const month of months) {
+        summaries.set(month, (await this.readInTransaction<Summary>(transaction, this.summaryRef(month))) ?? emptySummary())
+      }
+      let balances = (await this.readInTransaction<Balances>(transaction, balancesRef)) ?? {}
+
+      for (const { rule, occurrence, id } of toCreate) {
+        const data: TransactionData = {
+          type: rule.type,
+          date: occurrence.date,
+          amount: rule.amount,
+          categoryId: rule.type === 'transfer' ? null : rule.categoryId,
+          accountId: rule.accountId,
+          toAccountId: rule.type === 'transfer' ? rule.toAccountId : null,
+          memo: rule.memo,
+          source: { kind: 'recurring', recurringId: rule.id, originalDate: occurrence.originalDate },
+        }
+        const month = monthOf(data.date)
+        summaries.set(month, applyToSummary(summaries.get(month)!, data, 1))
+        balances = applyToBalances(balances, data, 1)
+        const txRef = this.transactionRef(id)
+        transaction.set(txRef, { month, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), enc: await this.encrypt(txRef, data) })
+      }
+      for (const [month, summary] of summaries) {
+        const ref = this.summaryRef(month)
+        transaction.set(ref, { enc: await this.encrypt(ref, summary) })
+      }
+      transaction.set(balancesRef, { enc: await this.encrypt(balancesRef, balances) })
+
+      // 作った分（すでにあった分も含む）の月まで進める。利用者が消した分を作り直さないため
+      const through = new Map<string, string>()
+      for (const { rule, occurrence } of planned) {
+        if (occurrence.month > (through.get(rule.id) ?? '')) through.set(rule.id, occurrence.month)
+      }
+      const nextRules = rules.map((rule) => (through.has(rule.id) ? { ...rule, generatedThrough: through.get(rule.id)! } : rule))
+      transaction.set(recurringRef, { enc: await this.encrypt(recurringRef, { items: nextRules }) })
+      return toCreate.length
+    })
   }
 
   // 予算の変更（F-50〜F-52）

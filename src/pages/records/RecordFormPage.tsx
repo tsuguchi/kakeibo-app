@@ -1,10 +1,11 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { Button } from '../../components/dads/Button'
 import { ErrorText } from '../../components/dads/ErrorText'
 import { Radio } from '../../components/dads/Radio'
-import { Select } from '../../components/dads/Select'
 import { Field } from '../../components/Field'
+import { focusOnMount } from '../../components/focusOnMount'
+import { SelectField } from '../../components/SelectField'
 import { Layout, MainNav } from '../../components/Layout'
 import { PageMessage } from '../../components/PageMessage'
 import { useData } from '../../data/context'
@@ -268,7 +269,7 @@ function RecordForm({ editingId, initial, initialDate }: { editingId: string | n
               <p
                 id="delete-confirm"
                 tabIndex={-1}
-                ref={(element) => element?.focus()}
+                ref={focusOnMount}
                 className="focus:outline focus:outline-4 focus:outline-black focus:outline-offset-[calc(2/16*1rem)]"
               >
                 この記録を削除します。元に戻せません。よろしいですか？
@@ -286,38 +287,5 @@ function RecordForm({ editingId, initial, initialDate }: { editingId: string | n
         </section>
       )}
     </Layout>
-  )
-}
-
-function SelectField({ label, value, onChange, options, support }: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  options: { value: string, label: string }[]
-  support?: string
-}) {
-  const id = useId()
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-std-17B-170">
-        {label}
-        <span className="ml-2 text-std-16N-170 text-error-1">※必須</span>
-      </label>
-      {support && <p id={`${id}-support`} className="text-std-16N-170 text-solid-gray-600">{support}</p>}
-      <Select
-        id={id}
-        className="w-full desktop:w-80"
-        // required を付けると、まだ選んでいないうちから「無効」と読み上げられるため、aria-required にする
-        aria-required
-        aria-describedby={support ? `${id}-support` : undefined}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">選んでください</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </Select>
-    </div>
   )
 }

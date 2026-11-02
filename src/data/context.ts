@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { DataStore } from '../lib/data/repository'
+import type { RecurringRule } from '../lib/data/recurring'
 import type { Account, Balances, Budget, Category } from '../lib/data/types'
 
 export interface DataState {
@@ -8,6 +9,7 @@ export interface DataState {
   accounts: Account[]
   balances: Balances
   budgets: Budget[]
+  recurring: RecurringRule[]
   categoryName: (id: string | null) => string
   accountName: (id: string | null) => string
 }

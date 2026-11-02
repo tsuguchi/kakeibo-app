@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
 import { needsEmailVerification, useAuth } from './auth/context'
 import { PageMessage } from './components/PageMessage'
 import { DataProvider } from './data/DataProvider'
@@ -12,6 +12,7 @@ import { DeleteAccountPage } from './pages/DeleteAccountPage'
 import { SetupPage } from './pages/crypto/SetupPage'
 import { UnlockPage } from './pages/crypto/UnlockPage'
 import { LoginPage } from './pages/LoginPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { RecordFormPage } from './pages/records/RecordFormPage'
 import { RecordsPage } from './pages/records/RecordsPage'
 import { RecurringPage } from './pages/RecurringPage'
@@ -19,9 +20,19 @@ import { SettingsPage } from './pages/SettingsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
+// プライバシーポリシーは、ログインしていなくても読める
+function App() {
+  return (
+    <Routes>
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="*" element={<GatedApp />} />
+    </Routes>
+  )
+}
+
 // ログイン → メールアドレスの確認 → 暗号化パスワードの設定またはデータを開く → 記録の画面、の順に進める。
 // 記録を開くまでは URL にかかわらず同じ画面を出し、開いた後は URL で画面を切り替える
-function App() {
+function GatedApp() {
   const { loading, user } = useAuth()
 
   if (loading) return <PageMessage>読み込み中…</PageMessage>
@@ -40,22 +51,20 @@ function UnlockedApp() {
   if (!keys) return <UnlockPage header={header} />
   return (
     <DataProvider uid={uid} keys={keys}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RecordsPage />} />
-          <Route path="/records/new" element={<RecordFormPage />} />
-          <Route path="/records/:id" element={<RecordFormPage />} />
-          <Route path="/summary" element={<SummaryPage />} />
-          <Route path="/budgets" element={<BudgetsPage />} />
-          <Route path="/accounts" element={<AccountsPage />} />
-          <Route path="/settings/categories" element={<CategoriesPage />} />
-          <Route path="/settings/recurring" element={<RecurringPage />} />
-          <Route path="/settings/csv" element={<CsvPage />} />
-          <Route path="/settings/delete-account" element={<DeleteAccountPage />} />
-          <Route path="/settings" element={<SettingsPage header={header} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        <Route path="/" element={<RecordsPage />} />
+        <Route path="/records/new" element={<RecordFormPage />} />
+        <Route path="/records/:id" element={<RecordFormPage />} />
+        <Route path="/summary" element={<SummaryPage />} />
+        <Route path="/budgets" element={<BudgetsPage />} />
+        <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/settings/categories" element={<CategoriesPage />} />
+        <Route path="/settings/recurring" element={<RecurringPage />} />
+        <Route path="/settings/csv" element={<CsvPage />} />
+        <Route path="/settings/delete-account" element={<DeleteAccountPage />} />
+        <Route path="/settings" element={<SettingsPage header={header} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </DataProvider>
   )
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router'
+import { Link, NavLink } from 'react-router'
 
 export const APP_NAME = 'わたしの家計簿'
 
@@ -55,6 +55,16 @@ export function Layout({ title, headerEnd, children }: { title: string, headerEn
         <h1 className="text-std-28B-150">{title}</h1>
         <div className="mt-6 flex flex-col gap-8">{children}</div>
       </main>
+      <footer className="mt-8 border-t border-solid-gray-420">
+        <div className="mx-auto max-w-160 px-4 py-6 text-dns-16N-130">
+          <Link
+            to="/privacy"
+            className="text-blue-1000 underline underline-offset-[calc(3/16*1rem)] hover:decoration-[calc(3/16*1rem)] focus-visible:rounded-4 focus-visible:bg-yellow-300 focus-visible:outline focus-visible:outline-4 focus-visible:outline-black"
+          >
+            プライバシーポリシー
+          </Link>
+        </div>
+      </footer>
     </>
   )
 }

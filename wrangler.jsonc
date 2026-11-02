@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kakeibo-app",
+  "compatibility_date": "2026-11-02",
+  "assets": {
+    "directory": "./dist",
+    // SPA なので、どの URL でも index.html を返す
+    "not_found_handling": "single-page-application"
+  }
+}

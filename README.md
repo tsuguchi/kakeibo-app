@@ -36,6 +36,14 @@ Emulator では、確認メールは実際には送られない。Emulator の�
 - `npx vite --mode production` で、本番につないだ開発サーバーを起動できる
 - Google・GitHub でのログインは小さな窓（ポップアップ）を使うので、VS Code の中のブラウザでは最後まで進めない。ふだんのブラウザで開く
 
+## 公開（Cloudflare Workers）
+
+- URL: https://kakeibo-app.tsuguchi.workers.dev
+- `npm run deploy` で、本番用に組み立てて（`.env.production.local` を使う）Cloudflare に公開する
+- 設定は `wrangler.jsonc`。どの URL でも index.html を返す（SPA）
+- 安全のためのヘッダー（Content Security Policy など）は `public/_headers`。Firebase の新しい機能を使ってログインや通信が止まったときは、ブラウザのコンソールでブロックされた読み込み先を確かめ、ここに足す
+- 公開する URL は、Firebase の Authentication の「承認済みドメイン」に登録しておく
+
 ## コマンド
 
 - `npm run dev`: 開発サーバー
@@ -44,6 +52,7 @@ Emulator では、確認メールは実際には送られない。Emulator の�
 - `npm test`: 暗号化などのテスト（`tests/unit`）
 - `npm run test:rules`: Firestore の Security Rules のテスト（`tests/rules`。Emulator を自動で起動・終了する）
 - `npm run emulators`: Firebase Emulator を起動する
+- `npm run deploy`: 本番用に組み立てて Cloudflare に公開する
 - `npm run deploy:rules`: Security Rules とインデックスを本番に反映する
 - `npm run holidays`: 内閣府の祝日の一覧から `src/lib/data/holidays.json` を作り直す
 

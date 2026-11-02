@@ -1,0 +1,11 @@
+# Cloudflare Workers の静的アセットに付けるヘッダー（DATA_MODEL.md 8 章）
+# Content-Security-Policy: 自分のサイトと Firebase 以外からプログラムを読み込ませない（XSS の被害を抑える）
+#   script-src  https://apis.google.com          … Google・GitHub のログインのポップアップを開く Firebase の部品
+#   connect-src *.googleapis.com                 … Firebase Authentication と Cloud Firestore との通信
+#   frame-src   kakeibo-app-61efb.firebaseapp.com … ログインの結果を受け取る Firebase の画面
+#   style-src   'unsafe-inline'                   … React の style 属性（グラフの幅や色）に必要
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://apis.google.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.googleapis.com; frame-src https://kakeibo-app-61efb.firebaseapp.com https://accounts.google.com; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()

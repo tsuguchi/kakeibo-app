@@ -12,7 +12,8 @@
     "emulators": "firebase emulators:start --project demo-kakeibo",
     "test:rules": "firebase emulators:exec --only firestore --project demo-kakeibo \"vitest run tests/rules\"",
     "deploy:rules": "firebase deploy --only firestore",
-    "holidays": "node scripts/update-holidays.mjs"
+    "holidays": "node scripts/update-holidays.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@digital-go-jp/tailwind-theme-plugin": "^2.0.0",
@@ -35,6 +36,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.156.1"
   }
 }
